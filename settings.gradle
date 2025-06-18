@@ -6,12 +6,11 @@ pluginManagement {
         gradlePluginPortal()
     }
     plugins {
-        id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+        id 'org.jetbrains.kotlin.jvm' version '2.1.21'
     }
 }
-plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.5.0'
-}
+// Foojay toolchain resolver plugin caused dependency conflicts with Gson
+// and is optional for this build, so omit it to avoid build failures
 
 include("common")
 include("fabric-like")

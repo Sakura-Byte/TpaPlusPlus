@@ -1,0 +1,77 @@
+import groovy.json.JsonSlurper
+import groovy.xml.XmlSlurper
+
+def fetchUrl(String u) {
+    def conn = new URL(u).openConnection()
+    conn.setRequestProperty('User-Agent', 'gradle')
+    conn.connect()
+    return conn.inputStream.text
+}
+
+// Determine target Minecraft version from -Ptarget_mc or minecraft_version property
+ext.resolveVersions = {
+    def mc = project.findProperty('target_mc') ?: project.findProperty('minecraft_version') ?: '1.20.1'
+    project.ext.minecraft_version = mc
+
+    // Fabric loader
+    try {
+        def jsonText = fetchUrl("https://meta.fabricmc.net/v2/versions/loader/${mc}")
+        def loaderJson = new JsonSlurper().parseText(jsonText)
+        project.ext.fabric_loader_version = loaderJson[0].loader.version
+    } catch(Exception ignored) {}
+
+    // Fabric API
+    try {
+        def xmlText = fetchUrl("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml")
+        def metadata = new XmlSlurper().parseText(xmlText)
+        def vers = metadata.versioning.versions.version*.text().findAll { it.endsWith("+${mc}") }
+        if(!vers.isEmpty()) project.ext.fabric_api_version = vers.last()
+    } catch(Exception ignored) {}
+
+    // Quilt loader
+    try {
+        def jsonText = fetchUrl("https://meta.quiltmc.org/v3/versions/loader/${mc}")
+        def loaderJson = new JsonSlurper().parseText(jsonText)
+        project.ext.quilt_loader_version = loaderJson[0].loader.version
+    } catch(Exception ignored) {}
+
+    // Quilt Standard Libraries (QSL)
+    try {
+        def xmlText = fetchUrl("https://maven.quiltmc.org/repository/release/org/quiltmc/qsl/maven-metadata.xml")
+        def meta = new XmlSlurper().parseText(xmlText)
+        def vers = meta.versioning.versions.version*.text().findAll { it.endsWith("+${mc}") }
+        if(!vers.isEmpty()) project.ext.quilt_fabric_api_version = vers.last()
+    } catch(Exception ignored) {}
+
+    // Forge
+    try {
+        def jsonText = fetchUrl("https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json")
+        def promos = new JsonSlurper().parseText(jsonText)
+        def build = promos.promos["${mc}-latest"]
+        if(build) project.ext.forge_version = "${mc}-${build}"
+    } catch(Exception ignored) {}
+
+    // NeoForge
+    try {
+        def xmlText = fetchUrl("https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml")
+        def neoMeta = new XmlSlurper().parseText(xmlText)
+        def latest = neoMeta.versioning.release.text()
+        if(!latest) latest = neoMeta.versioning.latest.text()
+        if(latest) project.ext.neoforge_version = latest
+    } catch(Exception ignored) {}
+
+    // Parchment mappings
+    try {
+        def xmlText = fetchUrl("https://maven.parchmentmc.org/org/parchmentmc/data/parchment-${mc}/maven-metadata.xml")
+        def parchMeta = new XmlSlurper().parseText(xmlText)
+        def vers = parchMeta.versioning.versions.version*.text()
+        if(!vers.isEmpty()) project.ext.parchment_version = vers.last()
+    } catch(Exception ignored) {}
+}
+
+resolveVersions()
+def neo = project.hasProperty('neoforge_version') ? project.neoforge_version : 'null'
+def parch = project.hasProperty('parchment_version') ? project.parchment_version : 'null'
+def quiltLoader = project.hasProperty('quilt_loader_version') ? project.quilt_loader_version : 'null'
+def qsl = project.hasProperty('quilt_fabric_api_version') ? project.quilt_fabric_api_version : 'null'
+println "Resolved versions -> mc=${minecraft_version}, fabricLoader=${fabric_loader_version}, fabricApi=${fabric_api_version}, forge=${forge_version}, neoforge=${neo}, parchment=${parch}, quiltLoader=${quiltLoader}, qsl=${qsl}"
