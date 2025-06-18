@@ -1,6 +1,6 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.9.23'
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.9.23'
+    id 'org.jetbrains.kotlin.jvm' version '2.1.21'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.21'
 }
 architectury {
     common(rootProject.enabled_platforms.split(","))
@@ -19,7 +19,7 @@ dependencies {
 
     // We implement fabric language kotlin here, simply to get access to all the libraries provided with it.
     // On forge, this should be the same for the "Kotlin for Forge" mod
-    modImplementation("net.fabricmc:fabric-language-kotlin:1.10.19+kotlin.1.9.23")
+    modImplementation("net.fabricmc:fabric-language-kotlin:1.13.3+kotlin.2.1.21")
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.11.0"
 }
